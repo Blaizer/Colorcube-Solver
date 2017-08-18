@@ -12,17 +12,18 @@ public class Triangle : MonoBehaviour
     void Awake()
     {
         renderer = GetComponent<MeshRenderer>();
-        CreateMesh();
+        //CreateMesh();
         UpdateColor();
     }
 
     void CreateMesh()
     {
         var collider = GetComponent<PolygonCollider2D>();
-        var mesh = gameObject.AddComponent<MeshFilter>().sharedMesh = new Mesh();
+        var mesh = gameObject.GetComponent<MeshFilter>().sharedMesh = new Mesh();
         mesh.vertices = collider.points.Select(p => (Vector3)p).ToArray();
         mesh.triangles = new int[] { 0, 1, 2 };
         mesh.UploadMeshData(true);
+        //UnityEditor.AssetDatabase.CreateAsset(mesh, string.Format("Assets/{0}.asset", name));
     }
 
     public bool this[int index]

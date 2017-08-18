@@ -16,7 +16,7 @@ public class Triangles : MonoBehaviour, IDragHandler, IPointerDownHandler, IScro
 
     int selectedColor;
 
-    public static Triangles Instance { get; set; }
+    public static Triangles Instance { get; private set; }
 
     void IDragHandler.OnDrag(PointerEventData eventData)
     {
@@ -42,7 +42,12 @@ public class Triangles : MonoBehaviour, IDragHandler, IPointerDownHandler, IScro
         if (triangle == null)
             return;
 
-        triangle[selectedColor] = true;
+        if (eventData.button == PointerEventData.InputButton.Left)
+            triangle[selectedColor] = true;
+        else if (eventData.button == PointerEventData.InputButton.Right)
+            triangle[selectedColor] = false;
+
+        //Debug.Log(string.Join(", ", (from pair in triangles.Select((value, index) => new { value, index }) where pair.value[0] select pair.index.ToString()).ToArray()));
     }
 
     private void Awake()
@@ -53,5 +58,21 @@ public class Triangles : MonoBehaviour, IDragHandler, IPointerDownHandler, IScro
     void Start()
     {
         triangles = GetComponentsInChildren<Triangle>();
+    }
+
+    public bool[,] TrianglesColors
+    {
+        get
+        {
+            var result = new bool[24, 3];
+            for (int i = 0; i < 24; i++)
+            {
+                for (int c = 0; c < 3; c++)
+                {
+                    result[i, c] = triangles[i][c];
+                }
+            }
+            return result;
+        }
     }
 }
