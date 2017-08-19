@@ -1,5 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Security.Permissions;
+using System.Threading;
 using UnityEngine;
 
 public class Solver : MonoBehaviour
@@ -14,25 +16,71 @@ public class Solver : MonoBehaviour
     PieceInfo[] currentPieces;
     bool solved;
 
+    Thread solverThread;
+
     struct PieceInfo
     {
         int index;
         int color;
     }
 
+    private void OnDestroy()
+    {
+        KillSolverThread();
+    }
+
     void OnGUI()
     {
+        CheckSolverThread();
+
+        bool enabled = GUI.enabled;
+
+        GUI.enabled = solverThread == null;
         if (GUI.Button(new Rect(0, 0, 200, 20), "Solve"))
         {
-            Solve(Triangles.Instance.TrianglesColors, Pieces.Instance.PieceTris);
+            StartSolverThread(Triangles.Instance.TrianglesColors, Pieces.Instance.PieceTris);
+        }
+
+        GUI.enabled = solverThread != null;
+        if (GUI.Button(new Rect(200, 0, 200, 20), "Cancel"))
+        {
+            KillSolverThread();
+        }
+
+        GUI.enabled = enabled;
+    }
+
+    private void CheckSolverThread()
+    {
+        if (solverThread != null && !solverThread.IsAlive)
+        {
+            Debug.Log("solved!");
+            solverThread.Join();
+            solverThread = null;
         }
     }
 
-    void Solve(bool[,] triangles, int[][] pieces)
+    private void KillSolverThread()
+    {
+        if (solverThread != null && solverThread.IsAlive)
+        {
+            maxPieceCount = 0;
+            solved = true;
+            solverThread.Join();
+            solverThread = null;
+        }
+    }
+
+    void StartSolverThread(bool[,] triangles, int[][] pieces)
     {
         this.triangles = triangles;
         this.pieces = pieces;
+        solverThread = new Thread(Solve);
+        solverThread.Start();
+    }
 
+    void Solve()
+    {
         solved = false;
         maxPieceCount = pieces.Length;
         currentPieces = new PieceInfo[maxPieceCount];
@@ -44,10 +92,8 @@ public class Solver : MonoBehaviour
         CheckSolved();
         for (pieceCount = 1; pieceCount < maxPieceCount && !solved; pieceCount++)
         {
-            Solve();
+            Solve(0, 0);
         }
-
-
     }
 
     void ValidateTriangles()
@@ -83,9 +129,10 @@ public class Solver : MonoBehaviour
         }
     }
 
-    void Solve(int depth = 0)
+    void Solve(int depth, int currentPiece)
     {
-        for (int p = depth; p < maxPieceCount; p++)
+        int lastPiece = maxPieceCount - (pieceCount - depth);
+        for (int p = currentPiece; p < lastPiece; p++)
         {
             int pieceLength = pieces[p].Length;
 
@@ -108,7 +155,7 @@ public class Solver : MonoBehaviour
 
                     if (depth < pieceCount - 1)
                     {
-                        Solve(depth + 1);
+                        Solve(depth + 1, p + 1);
                     }
                     else
                     {
@@ -137,7 +184,6 @@ public class Solver : MonoBehaviour
             }
         }
 
-        Debug.Log("Solved: " + pieceCount);
         solved = true;
     }
 }
