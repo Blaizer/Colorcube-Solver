@@ -66,4 +66,9 @@ public class Triangle : MonoBehaviour
             renderer.material.color = Triangles.Instance.primaryColors[2];
         }
     }
+
+    public string GetKey(int color)
+    {
+        return "Triangles_Color_" + transform.GetSiblingIndex() + "_" + color;
+    }
 }

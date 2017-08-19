@@ -10,6 +10,7 @@ public class Solver : MonoBehaviour
 
     int pieceCount;
     int maxPieceCount;
+    int[,][] allPieces;
     PieceInfo[] currentPieces;
     bool solved;
 
@@ -32,12 +33,14 @@ public class Solver : MonoBehaviour
         this.triangles = triangles;
         this.pieces = pieces;
 
-        ValidateTriangles();
-
         solved = false;
         maxPieceCount = pieces.Length;
         currentPieces = new PieceInfo[maxPieceCount];
 
+        ValidateTriangles();
+        GenerateAllPieces();
+
+        pieceCount = 0;
         CheckSolved();
         for (pieceCount = 1; pieceCount < maxPieceCount && !solved; pieceCount++)
         {
@@ -58,28 +61,49 @@ public class Solver : MonoBehaviour
         }
     }
 
+    void GenerateAllPieces()
+    {
+        allPieces = new int[maxPieceCount, 6][];
+
+        for (int p = 0; p < maxPieceCount; p++)
+        {
+            var piece = allPieces[p, 0] = pieces[p];
+            int pieceLength = piece.Length;
+
+            for (int r = 1; r < 6; r++)
+            {
+                allPieces[p, r] = new int[pieceLength];
+
+                int offset = r * 4;
+                for (int i = 0; i < pieceLength; i++)
+                {
+                    allPieces[p, r][i] = (piece[i] + offset) % 24;
+                }
+            }
+        }
+    }
+
     void Solve(int depth = 0)
     {
         for (int p = depth; p < maxPieceCount; p++)
         {
-            var piece = pieces[p];
-            int pieceLength = piece.Length;
+            int pieceLength = pieces[p].Length;
 
-            for (int r = 0; r < 24; r += 4)
+            for (int r = 0; r < 6; r++)
             {
+                var piece = allPieces[p, r];
+
                 for (int c = 0; c < 3; c++)
                 {
                     for (int i = 0; i < pieceLength; i++)
                     {
-                        int tri = (piece[i] + r) % 24;
-                        if (!triangles[tri, c])
+                        if (!triangles[piece[i], c])
                             goto NEXT;
                     }
 
                     for (int i = 0; i < pieceLength; i++)
                     {
-                        int tri = (piece[i] + r) % 24;
-                        board[tri, c]++;
+                        board[piece[i], c]++;
                     }
 
                     if (depth < pieceCount - 1)
@@ -93,8 +117,7 @@ public class Solver : MonoBehaviour
 
                     for (int i = 0; i < pieceLength; i++)
                     {
-                        int tri = (piece[i] + r) % 24;
-                        board[tri, c]--;
+                        board[piece[i], c]--;
                     }
 
                 NEXT:;
