@@ -14,14 +14,16 @@ public class Solver : MonoBehaviour
     int maxPieceCount;
     int[,][] allPieces;
     PieceInfo[] currentPieces;
+    List<PieceInfo[]> solutions = new List<PieceInfo[]>();
     bool solved;
 
     Thread solverThread;
 
     struct PieceInfo
     {
-        int index;
-        int color;
+        public int piece;
+        public int rotation;
+        public int color;
     }
 
     private void OnDestroy()
@@ -41,6 +43,8 @@ public class Solver : MonoBehaviour
             StartSolverThread(Triangles.Instance.TrianglesColors, Pieces.Instance.PieceTris);
         }
 
+        GUI.Label(new Rect(0, 20, 200, 20), pieceCount.ToString(), new GUIStyle() { alignment = TextAnchor.MiddleCenter });
+
         GUI.enabled = solverThread != null;
         if (GUI.Button(new Rect(200, 0, 200, 20), "Cancel"))
         {
@@ -54,9 +58,16 @@ public class Solver : MonoBehaviour
     {
         if (solverThread != null && !solverThread.IsAlive)
         {
-            Debug.Log("solved!");
             solverThread.Join();
             solverThread = null;
+            if (solved)
+            {
+                Debug.Log("solved!");
+                foreach (var piece in solutions[0])
+                {
+                    Debug.Log(string.Format("p: {0}, r: {1}, c: {2}", piece.piece, piece.rotation, piece.color));
+                }
+            }
         }
     }
 
@@ -82,6 +93,7 @@ public class Solver : MonoBehaviour
     void Solve()
     {
         solved = false;
+        solutions.Clear();
         maxPieceCount = pieces.Length;
         currentPieces = new PieceInfo[maxPieceCount];
 
@@ -93,6 +105,9 @@ public class Solver : MonoBehaviour
         for (pieceCount = 1; pieceCount < maxPieceCount && !solved; pieceCount++)
         {
             Solve(0, 0);
+
+            if (solved)
+                break;
         }
     }
 
@@ -132,16 +147,20 @@ public class Solver : MonoBehaviour
     void Solve(int depth, int currentPiece)
     {
         int lastPiece = maxPieceCount - (pieceCount - depth);
-        for (int p = currentPiece; p < lastPiece; p++)
+        for (int p = currentPiece; p <= lastPiece; p++)
         {
+            currentPieces[depth].piece = p;
             int pieceLength = pieces[p].Length;
 
             for (int r = 0; r < 6; r++)
             {
+                currentPieces[depth].rotation = r;
                 var piece = allPieces[p, r];
 
                 for (int c = 0; c < 3; c++)
                 {
+                    currentPieces[depth].color = c;
+
                     for (int i = 0; i < pieceLength; i++)
                     {
                         if (!triangles[piece[i], c])
@@ -167,7 +186,7 @@ public class Solver : MonoBehaviour
                         board[piece[i], c]--;
                     }
 
-                NEXT:;
+                    NEXT:;
                 }
             }
         }
@@ -184,6 +203,14 @@ public class Solver : MonoBehaviour
             }
         }
 
+        SaveSolution();
+    }
+
+    void SaveSolution()
+    {
         solved = true;
+        var solution = new PieceInfo[pieceCount];
+        solutions.Add(solution);
+        System.Array.Copy(currentPieces, solution, pieceCount);
     }
 }
